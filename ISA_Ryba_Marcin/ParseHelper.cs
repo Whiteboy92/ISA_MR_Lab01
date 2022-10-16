@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Globalization;
 using Eto.Forms;
-using Gtk;
 using static System.Double;
 
 namespace ISA_Ryba_Marcin
 {
-    public class ParseHelper
+    public static class ParseHelper
     {
         public static bool ParseDouble(string text, string fieldName, out double output, string culture = "")
         {
@@ -21,26 +20,26 @@ namespace ISA_Ryba_Marcin
                 return true;
             }
 
-            catch (ArgumentNullException _)
+            catch (ArgumentNullException)
             {
-                MessageBox.Show($"{fieldName} jest puste", MessageBoxType.Error);
+                MessageBox.Show($"{fieldName} is empty", MessageBoxType.Error);
             }
             
-            catch (FormatException _)
+            catch (FormatException)
             {
-                MessageBox.Show($"{fieldName} nie posiada poprawnego formatu - {5.1}", MessageBoxType.Error);
+                MessageBox.Show($"{fieldName} formatting isn't correct, try -> {5.1}", MessageBoxType.Error);
             }
             
-            catch (OverflowException _)
+            catch (OverflowException)
             {
-                MessageBox.Show($"{fieldName} przedział powinien być od {MinValue} do {MaxValue}", MessageBoxType.Error);
+                MessageBox.Show($"{fieldName} Value should start from {double.MinValue} to {double.MaxValue}", MessageBoxType.Error);
             }
 
-            output = double.NaN;
+            output = NaN;
             return false;
         }
         
-        public static bool ParseLong(string text, string fieldName, out double output, string culture = "")
+        public static bool ParseLong(string text, string fieldName, out long output, string culture = "")
         {
             if (culture.Length == 0)
             {
@@ -53,27 +52,27 @@ namespace ISA_Ryba_Marcin
                 return true;
             }
 
-            catch (ArgumentNullException _)
+            catch (ArgumentNullException)
             {
-                MessageBox.Show($"{fieldName} jest puste", MessageBoxType.Error);
+                MessageBox.Show($"{fieldName} is empty", MessageBoxType.Error);
             }
             
-            catch (ArgumentException _)
+            catch (ArgumentException)
             {
-                MessageBox.Show($"{fieldName} nie posiada poprawnego formatu - {5}", MessageBoxType.Error);
+                MessageBox.Show($"{fieldName} formatting isn't correct, try -> {5}", MessageBoxType.Error);
             }
             
-            catch (FormatException _)
+            catch (FormatException)
             {
-                MessageBox.Show($"{fieldName} nie posiada poprawnego formatu - {5}", MessageBoxType.Error);
+                MessageBox.Show($"{fieldName} formatting isn't correct, try -> {5}", MessageBoxType.Error);
             }
             
-            catch (OverflowException _)
+            catch (OverflowException)
             {
-                MessageBox.Show($"{fieldName} przedział powinien być od {long.MinValue} do {long.MaxValue}", MessageBoxType.Error);
+                MessageBox.Show($"{fieldName} Value should start from {long.MinValue} to {long.MaxValue}", MessageBoxType.Error);
             }
 
-            output = double.NaN;
+            output = 0;
             return false;
         }
     }

@@ -108,7 +108,7 @@ namespace ISA_Ryba_Marcin
                 {
                     new GridColumn
                     {
-                        Width = 110,
+                        Width = 65,
                         HeaderText = "Num",
                         DataCell = new TextBoxCell
                         {
@@ -118,7 +118,7 @@ namespace ISA_Ryba_Marcin
                     
                     new GridColumn
                     {
-                        Width = 110,
+                        Width = 100,
                         HeaderText = "xReal_1",
                         DataCell = new TextBoxCell
                         {
@@ -128,7 +128,7 @@ namespace ISA_Ryba_Marcin
                     
                     new GridColumn
                     {
-                        Width = 110,
+                        Width = 100,
                         HeaderText = "xInt_1",
                         DataCell = new TextBoxCell
                         {
@@ -138,7 +138,7 @@ namespace ISA_Ryba_Marcin
                     
                     new GridColumn
                     {
-                        Width = 110,
+                        Width = 150,
                         HeaderText = "xBin",
                         DataCell = new TextBoxCell
                         {
@@ -148,7 +148,7 @@ namespace ISA_Ryba_Marcin
                     
                     new GridColumn
                     {
-                        Width = 110,
+                        Width = 100,
                         HeaderText = "xInt_2",
                         DataCell = new TextBoxCell
                         {
@@ -158,7 +158,7 @@ namespace ISA_Ryba_Marcin
                     
                     new GridColumn
                     {
-                        Width = 110,
+                        Width = 100,
                         HeaderText = "xReal_2",
                         DataCell = new TextBoxCell
                         {
@@ -168,7 +168,7 @@ namespace ISA_Ryba_Marcin
                     
                     new GridColumn
                     {
-                        Width = 110,
+                        Width = 155,
                         HeaderText = "F(x)",
                         DataCell = new TextBoxCell
                         {

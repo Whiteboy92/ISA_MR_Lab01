@@ -6,71 +6,105 @@ using Eto.Drawing;
 
 namespace ISA_Ryba_Marcin
 {
-    public partial class MainForm : Form
+    public class MainForm : Form
     {
-        private static TextBox AInput;
-        private static TextBox BInput;
-        private static TextBox NInput;
+        private TextBox _aInput;
+        private TextBox _bInput;
+        private TextBox _nInput;
 
-        private static DropDown DInput;
+        private DropDown _dInput;
 
-        private Button StartButton;
+        private Button _startButton;
 
-        private GridView OutputTable;
+        private GridView _outputTable;
         
         
 
-        private static void StartIsa()
+        private void StartIsa()
         {
             if (!(
-                    ParseHelper.ParseDouble(AInput.Text, "A", out double a) &&
-                    ParseHelper.ParseDouble(BInput.Text, "B", out double b) &&
-                    ParseHelper.ParseLong(NInput.Text, "N", out long n) &&
-                    ParseHelper.ParseDouble(DInput.SelectedKey, "D", out double d, "en-US")))
+                    ParseHelper.ParseDouble(_aInput.Text, "A", out double a) &&
+                    ParseHelper.ParseDouble(_bInput.Text, "B", out double b) &&
+                    ParseHelper.ParseLong(_nInput.Text, "N", out long n) &&
+                    ParseHelper.ParseDouble(_dInput.SelectedKey, "D", out double d, "en-US")))
             {
                 return;
             }
 
-            if (n > 0) return;
-            MessageBox.Show("N should be bigger than 0!", MessageBoxType.Error);
-            
+            if (n < 0)
+            {
+                MessageBox.Show("N should be bigger than 0!", MessageBoxType.Error);
+            }
+
+            ((ObservableCollection<Specimen>)_outputTable.DataStore).Clear();
+
+            var rand = new Random();
+
+            var accuracy = d switch
+            {
+                1.0 => 0,
+                0.1 => 1,
+                0.01 => 2,
+                0.001 => 3,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+
             //Bits Number
             var l = (int) Math.Floor( Math.Log( (b - a) / d, 2) + 1.0);
+            var generation = new Specimen[n];
+            
+            for (var i = 0; i < n; i++)
+            {
+                var specimen = new Specimen
+                {
+                    N = i + 1,
+                    XReal1 = Math.Round(rand.NextDouble() * (b - a) + a, accuracy)
+                };
+                specimen.XInt1 = (long) Math.Round((1.0 / (b - a)) * (specimen.XReal1 - a) * (Math.Pow(2.0, l) - 1.0));
+                specimen.XBin = Convert.ToString(specimen.XInt1, 2).PadLeft(l, '0');
+                specimen.XInt2 = Convert.ToInt64(specimen.XBin, 2);
+                specimen.XReal2 = Math.Round(((b - a) * specimen.XInt2) / (Math.Pow(2.0,l) - 1.0) + a, accuracy);
+                specimen.Fx = (specimen.XReal2 % 1.0) *
+                              (Math.Cos(20.0 * Math.PI * specimen.XReal2 - Math.Sin(specimen.XReal2)));
+                
+                generation[i] = specimen;
+                ((ObservableCollection<Specimen>)_outputTable.DataStore).Add(specimen);
+            }
         }
         
         public MainForm()
         {
             Title = "INA Marcin Ryba";
-            MinimumSize = new Size(800, 600);
+            MinimumSize = new Size(840, 650);
 
-            AInput = new TextBox()
+            _aInput = new TextBox
             {
                 Text = "-4",
             };
             
-            BInput = new TextBox()
+            _bInput = new TextBox
             {
                 Text = "12",
             };
             
-            NInput = new TextBox()
+            _nInput = new TextBox
             {
                 Text = "10",
             };
 
-            DInput = new DropDown()
+            _dInput = new DropDown
             {
                 Items = { "1", "0.1", "0.01", "0.001" },
                 SelectedIndex = 3
             };
 
-            StartButton = new Button()
+            _startButton = new Button
             {
                 Text = "Start",
-                Command = new Command((sender, eventArgs) => StartIsa()),
+                Command = new Command((sender, eventArgs) => StartIsa())
             };
 
-            OutputTable = new GridView()
+            _outputTable = new GridView
             {
                 DataStore = new ObservableCollection<Specimen>(),
                 Width = 800,
@@ -92,7 +126,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xReal_1",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.xReal1.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XReal1.ToString(CultureInfo.CurrentCulture))
                         }
                     },
                     
@@ -102,7 +136,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xInt_1",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.xInt1.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XInt1.ToString())
                         }
                     },
                     
@@ -112,7 +146,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xBin",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.xBin.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XBin.ToString())
                         }
                     },
                     
@@ -122,7 +156,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xInt_2",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.xInt2.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XInt2.ToString())
                         }
                     },
                     
@@ -132,7 +166,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xReal_2",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.xReal2.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XReal2.ToString(CultureInfo.CurrentCulture))
                         }
                     },
                     
@@ -144,9 +178,10 @@ namespace ISA_Ryba_Marcin
                         {
                             Binding = Binding.Property<Specimen, string>(specimen => specimen.Fx.ToString(CultureInfo.CurrentCulture))
                         }
-                    },
+                    }
                 }
             };
+            
             
             Content = new StackLayout
             {
@@ -154,71 +189,65 @@ namespace ISA_Ryba_Marcin
                 Orientation = Orientation.Vertical,
                 Items =
                 {
-                    new StackLayout(),
-                    new Scrollable
-                    {
-                        Height = 300,
-                        Content = OutputTable
-                    }
-                }
-            };
-
-
-            Content = new StackLayout
-            {
-                Padding = 10,
-                Orientation = Orientation.Vertical,
-                Items =
-                {
-                    new StackLayout()
+                    new StackLayout
                     {
                         VerticalContentAlignment = VerticalAlignment.Center,
                         AlignLabels = true,
                         Orientation = Orientation.Horizontal,
                         Items =
                         {
-                            new Label()
+                            new Label
                             {
                                 Text = "A: "
                             },
-                            AInput,
-                            new Panel()
+                            _aInput,
+                            new Panel
                             {
                                 Width = 50,
+                                Height = 40
                             },
                             
-                            new Label()
+                            new Label
                             {
                                 Text = "B: "
                             },
-                            BInput,
-                            new Panel()
+                            _bInput,
+                            new Panel
                             {
                                 Width = 50,
+                                Height = 40
                             },
                             
-                            new Label()
+                            new Label
                             {
                                 Text = "D: "
                             },
-                            DInput,
-                            new Panel()
+                            _dInput,
+                            new Panel
                             {
                                 Width = 50,
+                                Height = 40
                             },
                             
-                            new Label()
+                            new Label
                             {
                                 Text = "N: "
                             },
-                            NInput,
-                            new Panel()
+                            _nInput,
+                            new Panel
                             {
                                 Width = 50,
+                                Height = 40
                             },
                             
-                            StartButton,
+                            _startButton,
                         }
+                    },
+                    new StackLayoutItem(),
+                    new Scrollable()
+                    {
+                        Height = 550,
+                        Content = _outputTable,
                     }
                 }
             };

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Globalization;
 using Eto.Forms;
-using static System.Double;
 
 namespace ISA_Ryba_Marcin
 {
@@ -16,7 +15,7 @@ namespace ISA_Ryba_Marcin
 
             try
             {
-                output = Parse(text, NumberStyles.Number, new CultureInfo(culture));
+                output = Double.Parse(text, NumberStyles.Number, new CultureInfo(culture));
                 return true;
             }
 
@@ -35,7 +34,7 @@ namespace ISA_Ryba_Marcin
                 MessageBox.Show($"{fieldName} Value should start from {double.MinValue} to {double.MaxValue}", MessageBoxType.Error);
             }
 
-            output = NaN;
+            output = double.NaN;
             return false;
         }
         

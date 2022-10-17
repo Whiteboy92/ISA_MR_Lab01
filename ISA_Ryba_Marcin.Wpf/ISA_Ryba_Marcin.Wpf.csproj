@@ -3,6 +3,8 @@
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net6.0-windows</TargetFramework>
+        <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
+        
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,5 +14,7 @@
     <ItemGroup>
         <PackageReference Include="Eto.Platform.Wpf" Version="2.7.1" />
     </ItemGroup>
+
+
 
 </Project>

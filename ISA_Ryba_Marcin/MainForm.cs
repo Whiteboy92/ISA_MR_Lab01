@@ -8,25 +8,21 @@ namespace ISA_Ryba_Marcin
 {
     public class MainForm : Form
     {
-        private TextBox _aInput;
-        private TextBox _bInput;
-        private TextBox _nInput;
+        private readonly TextBox _aInput;
+        private readonly TextBox _bInput;
+        private readonly TextBox _nInput;
 
-        private DropDown _dInput;
+        private readonly DropDown _dInput;
 
-        private Button _startButton;
+        private readonly GridView _outputTable;
 
-        private GridView _outputTable;
-        
-        
-
-        private void StartIsa()
+        private void StartMath()
         {
             if (!(
-                    ParseHelper.ParseDouble(_aInput.Text, "A", out double a) &&
-                    ParseHelper.ParseDouble(_bInput.Text, "B", out double b) &&
-                    ParseHelper.ParseLong(_nInput.Text, "N", out long n) &&
-                    ParseHelper.ParseDouble(_dInput.SelectedKey, "D", out double d, "en-US")))
+                    FormatChecker.ParseDouble(_aInput.Text, "A", out double a) &&
+                    FormatChecker.ParseDouble(_bInput.Text, "B", out double b) &&
+                    FormatChecker.ParseLong(_nInput.Text, "N", out long n) &&
+                    FormatChecker.ParseDouble(_dInput.SelectedKey, "D", out double d, "en-US")))
             {
                 return;
             }
@@ -36,7 +32,7 @@ namespace ISA_Ryba_Marcin
                 MessageBox.Show("N should be bigger than 0!", MessageBoxType.Error);
             }
 
-            ((ObservableCollection<Specimen>)_outputTable.DataStore).Clear();
+            ((ObservableCollection<Values>)_outputTable.DataStore).Clear();
 
             var rand = new Random();
 
@@ -51,24 +47,24 @@ namespace ISA_Ryba_Marcin
 
             //Bits Number
             var l = (int) Math.Floor( Math.Log( (b - a) / d, 2) + 1.0);
-            var generation = new Specimen[n];
+            var generation = new Values[n];
             
             for (var i = 0; i < n; i++)
             {
-                var specimen = new Specimen
+                var value = new Values
                 {
                     N = i + 1,
                     XReal1 = Math.Round(rand.NextDouble() * (b - a) + a, accuracy)
                 };
-                specimen.XInt1 = (long) Math.Round((1.0 / (b - a)) * (specimen.XReal1 - a) * (Math.Pow(2.0, l) - 1.0));
-                specimen.XBin = Convert.ToString(specimen.XInt1, 2).PadLeft(l, '0');
-                specimen.XInt2 = Convert.ToInt64(specimen.XBin, 2);
-                specimen.XReal2 = Math.Round(((b - a) * specimen.XInt2) / (Math.Pow(2.0,l) - 1.0) + a, accuracy);
-                specimen.Fx = (specimen.XReal2 % 1.0) *
-                              (Math.Cos(20.0 * Math.PI * specimen.XReal2 - Math.Sin(specimen.XReal2)));
+                value.XInt1 = (long) Math.Round((1.0 / (b - a)) * (value.XReal1 - a) * (Math.Pow(2.0, l) - 1.0));
+                value.XBin = Convert.ToString(value.XInt1, 2).PadLeft(l, '0');
+                value.XInt2 = Convert.ToInt64(value.XBin, 2);
+                value.XReal2 = Math.Round(((b - a) * value.XInt2) / (Math.Pow(2.0,l) - 1.0) + a, accuracy);
+                value.Fx = (value.XReal2 % 1.0) *
+                              (Math.Cos(20.0 * Math.PI * value.XReal2 - Math.Sin(value.XReal2)));
                 
-                generation[i] = specimen;
-                ((ObservableCollection<Specimen>)_outputTable.DataStore).Add(specimen);
+                generation[i] = value;
+                ((ObservableCollection<Values>)_outputTable.DataStore).Add(value);
             }
         }
         
@@ -98,85 +94,85 @@ namespace ISA_Ryba_Marcin
                 SelectedIndex = 3
             };
 
-            _startButton = new Button
+            var startButton = new Button
             {
                 Text = "Start",
-                Command = new Command((sender, eventArgs) => StartIsa())
+                Command = new Command((sender, eventArgs) => StartMath())
             };
 
             _outputTable = new GridView
             {
-                DataStore = new ObservableCollection<Specimen>(),
+                DataStore = new ObservableCollection<Values>(),
                 Width = 800,
                 Columns =
                 {
                     new GridColumn
                     {
-                        Width = 100,
+                        Width = 110,
                         HeaderText = "Num",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.N.ToString())
+                            Binding = Binding.Property<Values, string>(specimen => specimen.N.ToString())
                         }
                     },
                     
                     new GridColumn
                     {
-                        Width = 100,
+                        Width = 110,
                         HeaderText = "xReal_1",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XReal1.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Values, string>(specimen => specimen.XReal1.ToString(CultureInfo.CurrentCulture))
                         }
                     },
                     
                     new GridColumn
                     {
-                        Width = 100,
+                        Width = 110,
                         HeaderText = "xInt_1",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XInt1.ToString())
+                            Binding = Binding.Property<Values, string>(specimen => specimen.XInt1.ToString())
                         }
                     },
                     
                     new GridColumn
                     {
-                        Width = 100,
+                        Width = 110,
                         HeaderText = "xBin",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XBin.ToString())
+                            Binding = Binding.Property<Values, string>(specimen => specimen.XBin.ToString())
                         }
                     },
                     
                     new GridColumn
                     {
-                        Width = 100,
+                        Width = 110,
                         HeaderText = "xInt_2",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XInt2.ToString())
+                            Binding = Binding.Property<Values, string>(specimen => specimen.XInt2.ToString())
                         }
                     },
                     
                     new GridColumn
                     {
-                        Width = 100,
+                        Width = 110,
                         HeaderText = "xReal_2",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.XReal2.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Values, string>(specimen => specimen.XReal2.ToString(CultureInfo.CurrentCulture))
                         }
                     },
                     
                     new GridColumn
                     {
-                        Width = 100,
+                        Width = 110,
                         HeaderText = "F(x)",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Specimen, string>(specimen => specimen.Fx.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Values, string>(specimen => specimen.Fx.ToString(CultureInfo.CurrentCulture))
                         }
                     }
                 }
@@ -198,7 +194,7 @@ namespace ISA_Ryba_Marcin
                         {
                             new Label
                             {
-                                Text = "A: "
+                                Text = "a: "
                             },
                             _aInput,
                             new Panel
@@ -209,7 +205,7 @@ namespace ISA_Ryba_Marcin
                             
                             new Label
                             {
-                                Text = "B: "
+                                Text = "b: "
                             },
                             _bInput,
                             new Panel
@@ -220,7 +216,7 @@ namespace ISA_Ryba_Marcin
                             
                             new Label
                             {
-                                Text = "D: "
+                                Text = "d: "
                             },
                             _dInput,
                             new Panel
@@ -231,7 +227,7 @@ namespace ISA_Ryba_Marcin
                             
                             new Label
                             {
-                                Text = "N: "
+                                Text = "n: "
                             },
                             _nInput,
                             new Panel
@@ -240,7 +236,7 @@ namespace ISA_Ryba_Marcin
                                 Height = 40
                             },
                             
-                            _startButton,
+                            startButton,
                         }
                     },
                     new StackLayoutItem(),

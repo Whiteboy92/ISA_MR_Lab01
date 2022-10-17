@@ -4,7 +4,7 @@ using Eto.Forms;
 
 namespace ISA_Ryba_Marcin
 {
-    public static class ParseHelper
+    public static class FormatChecker
     {
         public static bool ParseDouble(string text, string fieldName, out double output, string culture = "")
         {
@@ -15,7 +15,7 @@ namespace ISA_Ryba_Marcin
 
             try
             {
-                output = Double.Parse(text, NumberStyles.Number, new CultureInfo(culture));
+                output = double.Parse(text, NumberStyles.Number, new CultureInfo(culture));
                 return true;
             }
 

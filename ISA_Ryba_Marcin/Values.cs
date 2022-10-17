@@ -1,6 +1,6 @@
 ﻿namespace ISA_Ryba_Marcin
 {
-    public class Specimen
+    public class Values
     {
         public long N;
         public double XReal1;

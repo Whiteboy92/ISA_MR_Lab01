@@ -1,297 +1,430 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using Eto.Drawing;
 using Eto.Forms;
-using Gdk;
-using Size = Eto.Drawing.Size;
 
 namespace ISA_Ryba_Marcin
 {
-    public class MainForm : Form
-    {
-        private readonly TextBox _aInput;
-        private readonly TextBox _bInput;
-        private readonly TextBox _nInput;
+	public sealed partial class MainForm : Form
+	{
+		private readonly TextBox _aInput;
+		private readonly TextBox _bInput;
+		private readonly DropDown _dInput;
+		private readonly TextBox _nInput;
+		private readonly GridView _outputTable;
+		private readonly Slider _pkSlider;
+		private readonly TextBox _pkValue;
+		private readonly Slider _pmSlider;
+		private readonly TextBox _pmValue;
+		private readonly DropDown _targetFunctionDropdown;
 
-        private readonly Slider _pkSlider;
-        private readonly TextBox _pkValue;
-        private readonly Slider _pmSlider;
-        private TextBox _pmValue;
+		private readonly List<DataRow> _data = new List<DataRow>();
 
-        private readonly DropDown _dInput;
-        private DropDown TargetFunctionDropdown;
+		private void SyncPkValueToSlider()
+		{
+			double val = _pkSlider.Value;
+			_pkValue.Text = (val / 100_000_000.0).ToString("0.00");
+		}
 
-        private readonly GridView _outputTable;
+		private void SyncPmValueToSlider()
+		{
+			double val = _pmSlider.Value;
+			_pmValue.Text = (val / 100_000_000.0).ToString("0.00");
+		}
 
-        private Scrollable OutputTableScrollable;
 
-        private void SyncPkValueToSlider()
-        {
-            double value = _pkSlider.Value;
-            _pkValue.Text = (value / 100000000.0).ToString("0.00");
-        }
-        
-        private void SyncPmValueToSlider()
-        {
-            double value = _pmSlider.Value;
-            _pmValue.Text = (value / 100000000.0).ToString("0.00");
-        }
-        
-        private void StartMath()
-        {
-            if (!(
-                    FormatChecker.ParseDouble(_aInput.Text, "A", out double a) &&
-                    FormatChecker.ParseDouble(_bInput.Text, "B", out double b) &&
-                    FormatChecker.ParseLong(_nInput.Text, "N", out long n) &&
-                    FormatChecker.ParseDouble(_dInput.SelectedKey, "D", out double d, "en-US")))
-            {
-                return;
-            }
+		private void StartIna()
+		{
+			if (!(
+					FormatChecker.ParseDouble(_aInput.Text, "A", out double a) &&
+					FormatChecker.ParseDouble(_bInput.Text, "B", out double b) &&
+					FormatChecker.ParseLong(_nInput.Text, "N", out long n) &&
+					FormatChecker.ParseDouble(_dInput.SelectedKey, "D", out double d, "en-US")
+				)
+				)
+			{
+				return;
+			}
 
-            if (n < 0)
-            {
-                MessageBox.Show("N should be bigger than 0!", MessageBoxType.Error);
-            }
+			if (n < 0)
+			{
+				MessageBox.Show("N should be bigger than 0!", MessageBoxType.Error);
+			}
 
-            ((ObservableCollection<Values>)_outputTable.DataStore).Clear();
+			if (_outputTable.DataStore == null)
+			{
+				MessageBox.Show("Collection is Null!");
+				return;
+			}
 
-            var rand = new Random();
+			((ObservableCollection<DataRow>)_outputTable.DataStore).Clear();
 
-            var accuracy = d switch
-            {
-                1.0 => 0,
-                0.1 => 1,
-                0.01 => 2,
-                0.001 => 3,
-                _ => throw new ArgumentOutOfRangeException()
-            };
+			SyncPkValueToSlider();
+			SyncPmValueToSlider();
 
-            //Bits Number
-            var l = (int) Math.Floor( Math.Log( (b - a) / d, 2) + 1.0);
-            var generation = new Values[n];
-            
-            for (var i = 0; i < n; i++)
-            {
-                var value = new Values
-                {
-                    N = i + 1,
-                    XReal1 = Math.Round(rand.NextDouble() * (b - a) + a, accuracy)
-                };
-                value.XInt1 = (long) Math.Round((1.0 / (b - a)) * (value.XReal1 - a) * (Math.Pow(2.0, l) - 1.0));
-                value.XBin = Convert.ToString(value.XInt1, 2).PadLeft(l, '0');
-                value.XInt2 = Convert.ToInt64(value.XBin, 2);
-                value.XReal2 = Math.Round(((b - a) * value.XInt2) / (Math.Pow(2.0,l) - 1.0) + a, accuracy);
-                value.Fx = (value.XReal2 % 1.0) *
-                              (Math.Cos(20.0 * Math.PI * value.XReal2 - Math.Sin(value.XReal2)));
-                
-                generation[i] = value;
-                ((ObservableCollection<Values>)_outputTable.DataStore).Add(value);
-            }
-        }
-        
-        public MainForm()
-        {
-            Title = "INA Marcin Ryba";
-            MinimumSize = new Size(1550, 650);
+			int l = (int)Math.Floor( Math.Log((b - a) / d, 2) + 1.0);
 
-            _aInput = new TextBox
-            {
-                Text = "-4",
-            };
-            
-            _bInput = new TextBox
-            {
-                Text = "12",
-            };
-            
-            _nInput = new TextBox
-            {
-                Text = "10",
-            };
+			StaticValues.Pk = _pkSlider.Value / 100_000_000.0;
+			StaticValues.Pm = _pmSlider.Value / 100_000_000.0;
+			StaticValues.A = a;
+			StaticValues.B = b;
+			StaticValues.D = d;
+			StaticValues.L = l;
 
-            _dInput = new DropDown
-            {
-                Items = { "1", "0.1", "0.01", "0.001" },
-                SelectedIndex = 3
-            };
+			StaticValues.TargetFunction = _targetFunctionDropdown.SelectedKey switch
+			{
+				"MAX" => TargetFunction.Max,
+				"MIN" => TargetFunction.Min
+			};
 
-            var startButton = new Button
-            {
-                Text = "Start",
-                Command = new Command((sender, eventArgs) => StartMath())
-            };
+			_data.Clear();
 
-            _outputTable = new GridView
-            {
-                DataStore = new ObservableCollection<Values>(),
-                Width = 1520,
-                Columns =
-                {
-                    new GridColumn
-                    {
-                        Width = 45,
-                        HeaderText = "Num",
-                        DataCell = new TextBoxCell
-                        {
-                            Binding = Binding.Property<Values, string>(values => values.N.ToString())
-                        }
-                    },
-                    
-                    new GridColumn
-                    {
-                        Width = 100,
-                        HeaderText = "xReal_1",
-                        DataCell = new TextBoxCell
-                        {
-                            Binding = Binding.Property<Values, string>(values => values.XReal1.ToString(CultureInfo.CurrentCulture))
-                        }
-                    },
-                    
-                    new GridColumn
-                    {
-                        Width = 100,
-                        HeaderText = "xInt_1",
-                        DataCell = new TextBoxCell
-                        {
-                            Binding = Binding.Property<Values, string>(values => values.XInt1.ToString())
-                        }
-                    },
-                    
-                    new GridColumn
-                    {
-                        Width = 150,
-                        HeaderText = "xBin",
-                        DataCell = new TextBoxCell
-                        {
-                            Binding = Binding.Property<Values, string>(values => values.XBin.ToString())
-                        }
-                    },
-                    
-                    new GridColumn
-                    {
-                        Width = 100,
-                        HeaderText = "xInt_2",
-                        DataCell = new TextBoxCell
-                        {
-                            Binding = Binding.Property<Values, string>(values => values.XInt2.ToString())
-                        }
-                    },
-                    
-                    new GridColumn
-                    {
-                        Width = 100,
-                        HeaderText = "xReal_2",
-                        DataCell = new TextBoxCell
-                        {
-                            Binding = Binding.Property<Values, string>(values => values.XReal2.ToString(CultureInfo.CurrentCulture))
-                        }
-                    },
-                    
-                    new GridColumn
-                    {
-                        Width = 155,
-                        HeaderText = "F(x)",
-                        DataCell = new TextBoxCell
-                        {
-                            Binding = Binding.Property<Values, string>(values => values.Fx.ToString(CultureInfo.CurrentCulture))
-                        }
-                    }
-                }
-            };
+			
+			for (int i = 0; i < n; i++)
+			{
+				var value = new Values();
+				value.XReal1 = StaticValues.RandomXReal();
+				value.XInt1 = MathHelper.XRealToXInt(value.XReal1);
+				value.XBin = MathHelper.XIntToXBin(value.XInt1);
+				value.XInt2 = MathHelper.XBinToXInt(value.XBin);
+				value.XReal2 = MathHelper.XIntToXReal(value.XInt2);
+				value.Fx = MathHelper.Fx(value.XReal1);
 
-            _pkSlider = new Slider()
-            {
-                MinValue = 0,
-                MaxValue = 100000000,
-                Value = 50000000,
-                Width = 110,
-                ToolTip = "Crossing Probability"
-            };
+				var dataRow = new DataRow(value, i + 1);
+				_data.Add(dataRow);
+				((ObservableCollection<DataRow>)_outputTable.DataStore).Add(dataRow);
+			}
 
-            _pkValue = new TextBox()
-            {
-                Text = (0.5).ToString("0.00"),
-                Width = 50,
-                ToolTip = "Crossing Probability"
-            };
+			CalculateGx();
+			CalculatePx();
+			CalculateQx();
+			Selection();
+			Parenting();
+			PairParents();
+			RandomizePc();
+			Fuck();
+			Mutate();
+			Final();
+		}
 
-            _pkValue.KeyDown += (sender, eventArgs) =>
-            {
-                if (eventArgs.Key == Keys.Enter)
-                    try
-                    {
-                        var value = double.Parse(_pkValue.Text);
-                        switch (value)
-                        {
-                            case > 1.0:
-                                _pkValue.Text = 1.0.ToString("0.00");
-                                value = 1.0;
-                                break;
-                            case < 0:
-                                _pkValue.Text = 0.0.ToString("0.00");
-                                value = 0.0;
-                                break;
-                        }
+		private void Final()
+		{
+			foreach (var row in _data)
+			{
+				row.FinalXRealValue = MathHelper.XBinToXReal(row.MutatedChromosomeValue);
+				row.FinalFxRealValue = MathHelper.Fx(row.FinalXRealValue);
+			}
+		}
 
-                        _pkSlider.Value = (int) Math.Round(value * 100000000.0);
-                    }
-                    catch (Exception exception)
-                    {
-                        SyncPkValueToSlider();
-                    }
-            };
+		private void Mutate()
+		{
+			for (int i = 0; i < _data.Count; i++)
+			{
+				_data[i].MutatedGenesValue = new List<int>();
+				_data[i].MutatedChromosomeValue = "";
+				string chromosome = _data[i].AfterChild.Item2;
+				for (int bit = 0; bit < StaticValues.L; bit++)
+				{
+					if (StaticValues.Rand.NextDouble() < StaticValues.Pm)
+					{
+						_data[i].MutatedGenesValue.Add(bit);
+						
+						if (chromosome[bit] == '0')
+						{
+							_data[i].MutatedChromosomeValue += "1";
+						}
+						else
+						{
+							_data[i].MutatedChromosomeValue += "0";
+						}
+					}
+					else
+					{
+						_data[i].MutatedChromosomeValue += chromosome[bit];
+					}
+				}
+			}
+		}
 
-            _pkSlider.ValueChanged += (sender, eventArgs) => SyncPkValueToSlider();
-            
-            _pmSlider = new Slider()
-            {
-                MinValue = 0,
-                MaxValue = 100000000,
-                Value = 2000000,
-                Width = 110,
-            };
-            
-            _pmValue = new TextBox()
-            {
-                Text = (0.02).ToString("0.00"),
-                Width = 50,
-            };
 
-            if (_pmValue != null)
-                _pmValue.KeyDown += (sender, eventArgs) =>
-                {
-                    if (eventArgs.Key == Keys.Enter)
-                        try
-                        {
-                            var value = double.Parse(_pmValue.Text);
-                            switch (value)
-                            {
-                                case > 1.0:
-                                    _pmValue.Text = 1.0.ToString("0.00");
-                                    value = 1.0;
-                                    break;
-                                case < 0:
-                                    _pmValue.Text = 0.0.ToString("0.00");
-                                    value = 0.0;
-                                    break;
-                            }
+		private void Fuck()
+		{
+			for (int i = 0; i < _data.Count; i++)
+			{
+				var row = _data[i];
+				if (row.ParentsWith == null) continue;
 
-                            _pmSlider.Value = (int) Math.Round(value * 100000000.0);
-                        }
-                        catch (Exception exception)
-                        {
-                            SyncPkValueToSlider();
-                        }
-                };
+				if (row.PcValue != null)
+				{
+					string firstParentPart = row.SelectionXBin.Item2.Substring(0, row.PcValue.Value);
+					const string spacer = " | ";
+					string secondParentPart = row.ParentsWith.SelectionXBin.Item2.Substring(row.PcValue.Value);
+					row.ChildXBin = firstParentPart + spacer + secondParentPart;
+				}
+			}
+		}
 
-            _pmSlider.ValueChanged += (sender, eventArgs) => SyncPmValueToSlider();
-            
-            OutputTableScrollable = new Scrollable()
-            {
-                Height = 550,
-                Content = _outputTable,
-            };
-            
+
+		private void RandomizePc()
+		{
+			for (int i = 0; i < _data.Count; i++)
+			{
+				var row = _data[i];
+				if (row.ParentsWith == null || row.PcValue != null) continue;
+
+				int pc = 1 + (int)Math.Round(StaticValues.Rand.NextDouble() * (StaticValues.L - 2));
+				row.PcValue = pc;
+				row.ParentsWith.PcValue = pc;
+				
+				_outputTable.Invalidate();
+			}
+		}
+
+		private void PairParents()
+		{
+			for (int i = 0; i < _data.Count; i++)
+			{
+				var row = _data[i];
+				if (!row.IsParent || row.ParentsWith != null) continue;
+				DataRow pair = null;
+				if (i + 1 < _data.Count)
+				{
+					for (int j = i + 1; j < _data.Count; j++)
+					{
+						if (!_data[j].IsParent) continue;
+						pair = _data[j];
+						break;
+					}
+				}
+
+				if (pair == null) continue;
+				row.ParentsWith = pair;
+				pair.ParentsWith = row;
+			}
+		}
+
+
+
+		private void Parenting()
+		{
+			foreach (var row in _data)
+			{
+				row.ParentRandom = StaticValues.Rand.NextDouble();
+				_outputTable.Invalidate();
+			}
+		}
+
+
+		private void Selection()
+		{
+			foreach (var row in _data)
+			{
+				row.SelectionRandom = StaticValues.Rand.NextDouble();
+				int selectedIndex = _data.Count - 1;
+				for (int i = 0; i < _data.Count; i++)
+				{
+					if (!(_data[i].QxValue >= row.SelectionRandom)) continue;
+					selectedIndex = i;
+					break;
+				}
+
+				row.SelectionValue = _data[selectedIndex].OriginalSpecimen;
+			}
+		}
+
+		private void CalculateGx()
+		{
+			switch (StaticValues.TargetFunction)
+			{
+				case TargetFunction.Max:
+					double min = _data.Min(x => x.OriginalSpecimen.Fx);
+					foreach (var dataRow in _data)
+					{
+						dataRow.GxValue = dataRow.OriginalSpecimen.Fx - min + StaticValues.D;
+					}
+
+					break;
+				
+				case TargetFunction.Min:
+					double max = _data.Max(x => x.OriginalSpecimen.Fx);
+					foreach (var dataRow in _data)
+					{
+						dataRow.GxValue = -(dataRow.OriginalSpecimen.Fx - max) + StaticValues.D;
+					}
+					break;
+				default:
+					throw new NotImplementedException();
+			}
+		}
+
+		private void CalculatePx()
+		{
+			double sum = _data.Sum(x => x.GxValue);
+			foreach (var dataRow in _data)
+			{
+				dataRow.PxValue = dataRow.GxValue / sum;
+			}
+		}
+
+		private void CalculateQx()
+		{
+			double sum = 0.0;
+			foreach (var dataRow in _data)
+			{
+				sum += dataRow.PxValue;
+				dataRow.QxValue = sum;
+			}
+		}
+
+		public MainForm()
+		{
+			Title = "ISA_Marcin_Ryba";
+			Width = 1200;
+			Height = 400;
+			MinimumSize = new Size(1200, 400);
+			Resizable = true;
+
+			_aInput = new TextBox()
+			{
+				Text = "-4"
+			};
+			_bInput = new TextBox()
+			{
+				Text = "12"
+			};
+			_dInput = new DropDown()
+			{
+				Items = { "1", "0.1", "0.01", "0.001" },
+				SelectedIndex = 3
+			};
+			_targetFunctionDropdown = new DropDown()
+			{
+				Items = { "MAX", "MIN" },
+				SelectedIndex = 0
+			};
+
+			_nInput = new TextBox()
+			{
+				Text = "10"
+			};
+			var startButton = new Button()
+			{
+				Text = "Start",
+				Command = new Command((sender, e) => StartIna())
+			};
+
+			_outputTable = _outputTable = new GridView()
+			{
+				DataStore = new ObservableCollection<DataRow>(),
+				Width = 800
+			};
+
+			foreach (var property in typeof(DataRow).GetProperties())
+			{
+				if (property.PropertyType != typeof((string, string))) continue;
+
+				_outputTable.Columns.Add(new GridColumn()
+				{
+					HeaderText = (((string, string))property.GetValue(DataRow.Empty)).Item1,
+					DataCell = new TextBoxCell()
+					{
+						Binding = Binding.Property<DataRow, string>(x => (((string, string))property.GetValue(x)).Item2)
+					}
+				});
+			}
+
+
+			var outputTableScrollable = new Scrollable()
+			{
+				Height = 250,
+				Content = _outputTable
+			};
+
+			_pkSlider = new Slider()
+			{
+				MinValue = 0,
+				MaxValue = 100_000_000,
+				Value = 50_000_000,
+				Width = 100
+			};
+			_pkValue = new TextBox()
+			{
+				Text = (0.5).ToString("0.00"),
+				Width = 50
+			};
+
+			_pkValue.KeyDown += (sender, args) =>
+			{
+				if (args.Key == Keys.Enter)
+				{
+					try
+					{
+						double val = double.Parse(_pkValue.Text);
+						if (val > 1.0)
+						{
+							_pkValue.Text = 1.0.ToString("0.00");
+							val = 1.0;
+						}
+						else if (val < 0)
+						{
+							_pkValue.Text = 0.0.ToString("0.00");
+							val = 0.0;
+						}
+						_pkSlider.Value = (int)Math.Round(val * 100_000_000.0);
+					}
+					catch (Exception e)
+					{
+						SyncPkValueToSlider();
+					}
+				}
+			};
+
+			_pkSlider.ValueChanged += (sender, args) => SyncPkValueToSlider();
+
+			_pmSlider = new Slider()
+			{
+				MinValue = 0,
+				MaxValue = 100_000_000,
+				Value = 2_000_000,
+				Width = 100
+			};
+			_pmValue = new TextBox()
+			{
+				Text = 0.02.ToString("0.00"),
+				Width = 50
+			};
+
+			_pmValue.KeyDown += (sender, args) =>
+			{
+				if (args.Key != Keys.Enter) return;
+				try
+				{
+					double val = double.Parse(_pmValue.Text);
+					switch (val)
+					{
+						case > 1.0:
+							_pmValue.Text = 1.0.ToString("0.00");
+							val = 1.0;
+							break;
+						case < 0:
+							_pmValue.Text = 0.0.ToString("0.00");
+							val = 0.0;
+							break;
+					}
+					_pmSlider.Value = (int)Math.Round(val * 100_000_000.0);
+				}
+				catch (Exception e)
+				{
+					SyncPmValueToSlider();
+				}
+			};
+			_pmSlider.ValueChanged += (sender, args) => SyncPmValueToSlider();
+
+
+
             Content = new StackLayout
             {
                 Padding = 10,
@@ -376,12 +509,30 @@ namespace ISA_Ryba_Marcin
                             
                             _pmSlider,
                             _pmValue,
+                            
+                            new Label()
+                            {
+	                            Text = "Target Func"
+                            },
+                            _targetFunctionDropdown,
                             startButton,
                         }
                     },
-                    OutputTableScrollable,
+                    outputTableScrollable,
                 }
             };
-        }
-    }
+
+
+			this.SizeChanged += (sender, args) =>
+			{
+				if (_outputTable != null)
+				{
+					_outputTable.Width = Width - 42;
+				}
+
+				outputTableScrollable.Width = Width - 40;
+				outputTableScrollable.Height = Height - 100;
+			};
+		}
+	}
 }

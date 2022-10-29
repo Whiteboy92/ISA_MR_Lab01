@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reflection;
 using Eto.Drawing;
 using Eto.Forms;
 
 namespace ISA_Ryba_Marcin
 {
-	public sealed partial class MainForm : Form
+	public sealed class MainForm : Form
 	{
 		private readonly TextBox _aInput;
 		private readonly TextBox _bInput;
@@ -21,7 +20,7 @@ namespace ISA_Ryba_Marcin
 		private readonly TextBox _pmValue;
 		private readonly DropDown _targetFunctionDropdown;
 
-		private readonly List<DataRow> _data = new List<DataRow>();
+		private readonly List<DataRow> _data = new();
 
 		private void SyncPkValueToSlider()
 		{
@@ -35,7 +34,7 @@ namespace ISA_Ryba_Marcin
 			_pmValue.Text = (val / 100_000_000.0).ToString("0.00");
 		}
 
-
+		//Start Calculations
 		private void StartIna()
 		{
 			if (!(
@@ -77,16 +76,18 @@ namespace ISA_Ryba_Marcin
 			StaticValues.TargetFunction = _targetFunctionDropdown.SelectedKey switch
 			{
 				"MAX" => TargetFunction.Max,
-				"MIN" => TargetFunction.Min
+				"MIN" => TargetFunction.Min,
+				_ => throw new ArgumentOutOfRangeException()
 			};
 
 			_data.Clear();
-
 			
-			for (int i = 0; i < n; i++)
+			for (var i = 0; i < n; i++)
 			{
-				var value = new Values();
-				value.XReal1 = StaticValues.RandomXReal();
+				var value = new Values
+				{
+					XReal1 = StaticValues.RandomXReal()
+				};
 				value.XInt1 = MathHelper.XRealToXInt(value.XReal1);
 				value.XBin = MathHelper.XIntToXBin(value.XInt1);
 				value.XInt2 = MathHelper.XBinToXInt(value.XBin);
@@ -101,11 +102,11 @@ namespace ISA_Ryba_Marcin
 			CalculateGx();
 			CalculatePx();
 			CalculateQx();
-			Selection();
-			Parenting();
+			Select();
+			GetParents();
 			PairParents();
 			RandomizePc();
-			Fuck();
+			MakeBabies();
 			Mutate();
 			Final();
 		}
@@ -121,58 +122,53 @@ namespace ISA_Ryba_Marcin
 
 		private void Mutate()
 		{
-			for (int i = 0; i < _data.Count; i++)
+			foreach (var dataRow in _data)
 			{
-				_data[i].MutatedGenesValue = new List<int>();
-				_data[i].MutatedChromosomeValue = "";
-				string chromosome = _data[i].AfterChild.Item2;
-				for (int bit = 0; bit < StaticValues.L; bit++)
+				dataRow.MutatedGenesValue = new List<int>();
+				dataRow.MutatedChromosomeValue = "";
+				string chromosome = dataRow.AfterChild.Item2;
+				for (var bit = 0; bit < StaticValues.L; bit++)
 				{
 					if (StaticValues.Rand.NextDouble() < StaticValues.Pm)
 					{
-						_data[i].MutatedGenesValue.Add(bit);
+						dataRow.MutatedGenesValue.Add(bit);
 						
 						if (chromosome[bit] == '0')
 						{
-							_data[i].MutatedChromosomeValue += "1";
+							dataRow.MutatedChromosomeValue += "1";
 						}
 						else
 						{
-							_data[i].MutatedChromosomeValue += "0";
+							dataRow.MutatedChromosomeValue += "0";
 						}
 					}
 					else
 					{
-						_data[i].MutatedChromosomeValue += chromosome[bit];
+						dataRow.MutatedChromosomeValue += chromosome[bit];
 					}
 				}
 			}
 		}
 
 
-		private void Fuck()
+		private void MakeBabies()
 		{
-			for (int i = 0; i < _data.Count; i++)
+			foreach (var row in _data)
 			{
-				var row = _data[i];
 				if (row.ParentsWith == null) continue;
 
-				if (row.PcValue != null)
-				{
-					string firstParentPart = row.SelectionXBin.Item2.Substring(0, row.PcValue.Value);
-					const string spacer = " | ";
-					string secondParentPart = row.ParentsWith.SelectionXBin.Item2.Substring(row.PcValue.Value);
-					row.ChildXBin = firstParentPart + spacer + secondParentPart;
-				}
+				if (row.PcValue == null) continue;
+				string firstParentPart = row.SelectionXBin.Item2.Substring(0, row.PcValue.Value);
+				const string spacer = " | ";
+				string secondParentPart = row.ParentsWith.SelectionXBin.Item2.Substring(row.PcValue.Value);
+				row.ChildXBin = firstParentPart + spacer + secondParentPart;
 			}
 		}
-
-
+		
 		private void RandomizePc()
 		{
-			for (int i = 0; i < _data.Count; i++)
+			foreach (var row in _data)
 			{
-				var row = _data[i];
 				if (row.ParentsWith == null || row.PcValue != null) continue;
 
 				int pc = 1 + (int)Math.Round(StaticValues.Rand.NextDouble() * (StaticValues.L - 2));
@@ -185,14 +181,14 @@ namespace ISA_Ryba_Marcin
 
 		private void PairParents()
 		{
-			for (int i = 0; i < _data.Count; i++)
+			for (var i = 0; i < _data.Count; i++)
 			{
 				var row = _data[i];
 				if (!row.IsParent || row.ParentsWith != null) continue;
 				DataRow pair = null;
 				if (i + 1 < _data.Count)
 				{
-					for (int j = i + 1; j < _data.Count; j++)
+					for (var j = i + 1; j < _data.Count; j++)
 					{
 						if (!_data[j].IsParent) continue;
 						pair = _data[j];
@@ -205,33 +201,30 @@ namespace ISA_Ryba_Marcin
 				pair.ParentsWith = row;
 			}
 		}
-
-
-
-		private void Parenting()
+		
+		private void GetParents()
 		{
 			foreach (var row in _data)
 			{
-				row.ParentRandom = StaticValues.Rand.NextDouble();
+				row.ParentRand = StaticValues.Rand.NextDouble();
 				_outputTable.Invalidate();
 			}
 		}
-
-
-		private void Selection()
+		
+		private void Select()
 		{
 			foreach (var row in _data)
 			{
-				row.SelectionRandom = StaticValues.Rand.NextDouble();
+				row.SelectRandom = StaticValues.Rand.NextDouble();
 				int selectedIndex = _data.Count - 1;
-				for (int i = 0; i < _data.Count; i++)
+				for (var i = 0; i < _data.Count; i++)
 				{
-					if (!(_data[i].QxValue >= row.SelectionRandom)) continue;
+					if (!(_data[i].QxValue >= row.SelectRandom)) continue;
 					selectedIndex = i;
 					break;
 				}
 
-				row.SelectionValue = _data[selectedIndex].OriginalSpecimen;
+				row.SelectionValue = _data[selectedIndex].OriginalValues;
 			}
 		}
 
@@ -240,19 +233,19 @@ namespace ISA_Ryba_Marcin
 			switch (StaticValues.TargetFunction)
 			{
 				case TargetFunction.Max:
-					double min = _data.Min(x => x.OriginalSpecimen.Fx);
+					double min = _data.Min(x => x.OriginalValues.Fx);
 					foreach (var dataRow in _data)
 					{
-						dataRow.GxValue = dataRow.OriginalSpecimen.Fx - min + StaticValues.D;
+						dataRow.GxValue = dataRow.OriginalValues.Fx - min + StaticValues.D;
 					}
 
 					break;
 				
 				case TargetFunction.Min:
-					double max = _data.Max(x => x.OriginalSpecimen.Fx);
+					double max = _data.Max(x => x.OriginalValues.Fx);
 					foreach (var dataRow in _data)
 					{
-						dataRow.GxValue = -(dataRow.OriginalSpecimen.Fx - max) + StaticValues.D;
+						dataRow.GxValue = -(dataRow.OriginalValues.Fx - max) + StaticValues.D;
 					}
 					break;
 				default:
@@ -279,12 +272,14 @@ namespace ISA_Ryba_Marcin
 			}
 		}
 
+		//-----------------------------------------------------------
+		//Main Form
 		public MainForm()
 		{
 			Title = "ISA_Marcin_Ryba";
-			Width = 1200;
-			Height = 400;
-			MinimumSize = new Size(1200, 400);
+			Width = 1650;
+			Height = 450;
+			MinimumSize = new Size(1650, 450);
 			Resizable = true;
 
 			_aInput = new TextBox()
@@ -313,7 +308,7 @@ namespace ISA_Ryba_Marcin
 			var startButton = new Button()
 			{
 				Text = "Start",
-				Command = new Command((sender, e) => StartIna())
+				Command = new Command((sender, eventArgs) => StartIna())
 			};
 
 			_outputTable = _outputTable = new GridView()
@@ -322,6 +317,7 @@ namespace ISA_Ryba_Marcin
 				Width = 800
 			};
 
+			//Make columns
 			foreach (var property in typeof(DataRow).GetProperties())
 			{
 				if (property.PropertyType != typeof((string, string))) continue;
@@ -335,11 +331,10 @@ namespace ISA_Ryba_Marcin
 					}
 				});
 			}
-
-
+			
 			var outputTableScrollable = new Scrollable()
 			{
-				Height = 250,
+				Height = 300,
 				Content = _outputTable
 			};
 
@@ -348,7 +343,7 @@ namespace ISA_Ryba_Marcin
 				MinValue = 0,
 				MaxValue = 100_000_000,
 				Value = 50_000_000,
-				Width = 100
+				Width = 110
 			};
 			_pkValue = new TextBox()
 			{
@@ -356,40 +351,40 @@ namespace ISA_Ryba_Marcin
 				Width = 50
 			};
 
+			//PK Slider
 			_pkValue.KeyDown += (sender, args) =>
 			{
-				if (args.Key == Keys.Enter)
+				if (args.Key != Keys.Enter) return;
+				try
 				{
-					try
+					double val = double.Parse(_pkValue.Text);
+					switch (val)
 					{
-						double val = double.Parse(_pkValue.Text);
-						if (val > 1.0)
-						{
+						case > 1.0:
 							_pkValue.Text = 1.0.ToString("0.00");
 							val = 1.0;
-						}
-						else if (val < 0)
-						{
+							break;
+						case < 0:
 							_pkValue.Text = 0.0.ToString("0.00");
 							val = 0.0;
-						}
-						_pkSlider.Value = (int)Math.Round(val * 100_000_000.0);
+							break;
 					}
-					catch (Exception e)
-					{
-						SyncPkValueToSlider();
-					}
+					_pkSlider.Value = (int)Math.Round(val * 100_000_000.0);
+				}
+				catch (Exception exception)
+				{
+					SyncPkValueToSlider();
 				}
 			};
 
-			_pkSlider.ValueChanged += (sender, args) => SyncPkValueToSlider();
+			_pkSlider.ValueChanged += (sender, eventArgs) => SyncPkValueToSlider();
 
 			_pmSlider = new Slider()
 			{
 				MinValue = 0,
 				MaxValue = 100_000_000,
 				Value = 2_000_000,
-				Width = 100
+				Width = 110
 			};
 			_pmValue = new TextBox()
 			{
@@ -397,9 +392,10 @@ namespace ISA_Ryba_Marcin
 				Width = 50
 			};
 
-			_pmValue.KeyDown += (sender, args) =>
+			//PM Slider
+			_pmValue.KeyDown += (sender, eventArgs) =>
 			{
-				if (args.Key != Keys.Enter) return;
+				if (eventArgs.Key != Keys.Enter) return;
 				try
 				{
 					double val = double.Parse(_pmValue.Text);
@@ -416,15 +412,14 @@ namespace ISA_Ryba_Marcin
 					}
 					_pmSlider.Value = (int)Math.Round(val * 100_000_000.0);
 				}
-				catch (Exception e)
+				catch (Exception exception)
 				{
 					SyncPmValueToSlider();
 				}
 			};
-			_pmSlider.ValueChanged += (sender, args) => SyncPmValueToSlider();
-
-
-
+			_pmSlider.ValueChanged += (sender, eventArgs) => SyncPmValueToSlider();
+			
+			//Display
             Content = new StackLayout
             {
                 Padding = 10,
@@ -446,7 +441,7 @@ namespace ISA_Ryba_Marcin
                             new Panel
                             {
                                 Width = 50,
-                                Height = 40
+                                Height = 45
                             },
                             
                             new Label
@@ -457,7 +452,7 @@ namespace ISA_Ryba_Marcin
                             new Panel
                             {
                                 Width = 50,
-                                Height = 40
+                                Height = 45
                             },
                             
                             new Label
@@ -468,7 +463,7 @@ namespace ISA_Ryba_Marcin
                             new Panel
                             {
                                 Width = 50,
-                                Height = 40
+                                Height = 45
                             },
                             
                             new Label
@@ -478,8 +473,7 @@ namespace ISA_Ryba_Marcin
                             _nInput,
                             new Panel
                             {
-                                Width = 50,
-                                Height = 40
+	                            Height = 45
                             },
                             
                             new Label
@@ -489,8 +483,7 @@ namespace ISA_Ryba_Marcin
                             _pmSlider,
                             new Panel
                             {
-
-                                Height = 40
+	                            Height = 45
                             },
                             
                             _pkSlider,
@@ -503,8 +496,7 @@ namespace ISA_Ryba_Marcin
                             _pmSlider,
                             new Panel
                             {
-
-                                Height = 40
+	                            Height = 45
                             },
                             
                             _pmSlider,
@@ -521,15 +513,13 @@ namespace ISA_Ryba_Marcin
                     outputTableScrollable,
                 }
             };
-
-
-			this.SizeChanged += (sender, args) =>
+            
+			SizeChanged += (_, _) =>
 			{
 				if (_outputTable != null)
 				{
 					_outputTable.Width = Width - 42;
 				}
-
 				outputTableScrollable.Width = Width - 40;
 				outputTableScrollable.Height = Height - 100;
 			};

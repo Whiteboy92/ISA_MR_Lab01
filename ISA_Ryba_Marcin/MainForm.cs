@@ -2,7 +2,8 @@ using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using Eto.Forms;
-using Eto.Drawing;
+using Gdk;
+using Size = Eto.Drawing.Size;
 
 namespace ISA_Ryba_Marcin
 {
@@ -12,10 +13,30 @@ namespace ISA_Ryba_Marcin
         private readonly TextBox _bInput;
         private readonly TextBox _nInput;
 
+        private readonly Slider _pkSlider;
+        private readonly TextBox _pkValue;
+        private readonly Slider _pmSlider;
+        private TextBox _pmValue;
+
         private readonly DropDown _dInput;
+        private DropDown TargetFunctionDropdown;
 
         private readonly GridView _outputTable;
 
+        private Scrollable OutputTableScrollable;
+
+        private void SyncPkValueToSlider()
+        {
+            double value = _pkSlider.Value;
+            _pkValue.Text = (value / 100000000.0).ToString("0.00");
+        }
+        
+        private void SyncPmValueToSlider()
+        {
+            double value = _pmSlider.Value;
+            _pmValue.Text = (value / 100000000.0).ToString("0.00");
+        }
+        
         private void StartMath()
         {
             if (!(
@@ -71,7 +92,7 @@ namespace ISA_Ryba_Marcin
         public MainForm()
         {
             Title = "INA Marcin Ryba";
-            MinimumSize = new Size(840, 650);
+            MinimumSize = new Size(1550, 650);
 
             _aInput = new TextBox
             {
@@ -103,16 +124,16 @@ namespace ISA_Ryba_Marcin
             _outputTable = new GridView
             {
                 DataStore = new ObservableCollection<Values>(),
-                Width = 800,
+                Width = 1520,
                 Columns =
                 {
                     new GridColumn
                     {
-                        Width = 65,
+                        Width = 45,
                         HeaderText = "Num",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Values, string>(specimen => specimen.N.ToString())
+                            Binding = Binding.Property<Values, string>(values => values.N.ToString())
                         }
                     },
                     
@@ -122,7 +143,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xReal_1",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Values, string>(specimen => specimen.XReal1.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Values, string>(values => values.XReal1.ToString(CultureInfo.CurrentCulture))
                         }
                     },
                     
@@ -132,7 +153,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xInt_1",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Values, string>(specimen => specimen.XInt1.ToString())
+                            Binding = Binding.Property<Values, string>(values => values.XInt1.ToString())
                         }
                     },
                     
@@ -142,7 +163,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xBin",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Values, string>(specimen => specimen.XBin.ToString())
+                            Binding = Binding.Property<Values, string>(values => values.XBin.ToString())
                         }
                     },
                     
@@ -152,7 +173,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xInt_2",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Values, string>(specimen => specimen.XInt2.ToString())
+                            Binding = Binding.Property<Values, string>(values => values.XInt2.ToString())
                         }
                     },
                     
@@ -162,7 +183,7 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "xReal_2",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Values, string>(specimen => specimen.XReal2.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Values, string>(values => values.XReal2.ToString(CultureInfo.CurrentCulture))
                         }
                     },
                     
@@ -172,12 +193,104 @@ namespace ISA_Ryba_Marcin
                         HeaderText = "F(x)",
                         DataCell = new TextBoxCell
                         {
-                            Binding = Binding.Property<Values, string>(specimen => specimen.Fx.ToString(CultureInfo.CurrentCulture))
+                            Binding = Binding.Property<Values, string>(values => values.Fx.ToString(CultureInfo.CurrentCulture))
                         }
                     }
                 }
             };
+
+            _pkSlider = new Slider()
+            {
+                MinValue = 0,
+                MaxValue = 100000000,
+                Value = 50000000,
+                Width = 110,
+                ToolTip = "Crossing Probability"
+            };
+
+            _pkValue = new TextBox()
+            {
+                Text = (0.5).ToString("0.00"),
+                Width = 50,
+                ToolTip = "Crossing Probability"
+            };
+
+            _pkValue.KeyDown += (sender, eventArgs) =>
+            {
+                if (eventArgs.Key == Keys.Enter)
+                    try
+                    {
+                        var value = double.Parse(_pkValue.Text);
+                        switch (value)
+                        {
+                            case > 1.0:
+                                _pkValue.Text = 1.0.ToString("0.00");
+                                value = 1.0;
+                                break;
+                            case < 0:
+                                _pkValue.Text = 0.0.ToString("0.00");
+                                value = 0.0;
+                                break;
+                        }
+
+                        _pkSlider.Value = (int) Math.Round(value * 100000000.0);
+                    }
+                    catch (Exception exception)
+                    {
+                        SyncPkValueToSlider();
+                    }
+            };
+
+            _pkSlider.ValueChanged += (sender, eventArgs) => SyncPkValueToSlider();
             
+            _pmSlider = new Slider()
+            {
+                MinValue = 0,
+                MaxValue = 100000000,
+                Value = 2000000,
+                Width = 110,
+            };
+            
+            _pmValue = new TextBox()
+            {
+                Text = (0.02).ToString("0.00"),
+                Width = 50,
+            };
+
+            if (_pmValue != null)
+                _pmValue.KeyDown += (sender, eventArgs) =>
+                {
+                    if (eventArgs.Key == Keys.Enter)
+                        try
+                        {
+                            var value = double.Parse(_pmValue.Text);
+                            switch (value)
+                            {
+                                case > 1.0:
+                                    _pmValue.Text = 1.0.ToString("0.00");
+                                    value = 1.0;
+                                    break;
+                                case < 0:
+                                    _pmValue.Text = 0.0.ToString("0.00");
+                                    value = 0.0;
+                                    break;
+                            }
+
+                            _pmSlider.Value = (int) Math.Round(value * 100000000.0);
+                        }
+                        catch (Exception exception)
+                        {
+                            SyncPkValueToSlider();
+                        }
+                };
+
+            _pmSlider.ValueChanged += (sender, eventArgs) => SyncPmValueToSlider();
+            
+            OutputTableScrollable = new Scrollable()
+            {
+                Height = 550,
+                Content = _outputTable,
+            };
             
             Content = new StackLayout
             {
@@ -236,15 +349,37 @@ namespace ISA_Ryba_Marcin
                                 Height = 40
                             },
                             
+                            new Label
+                            {
+                                Text = "PK: "
+                            },
+                            _pmSlider,
+                            new Panel
+                            {
+
+                                Height = 40
+                            },
+                            
+                            _pkSlider,
+                            _pkValue,
+                            
+                            new Label
+                            {
+                                Text = "PM: "
+                            },
+                            _pmSlider,
+                            new Panel
+                            {
+
+                                Height = 40
+                            },
+                            
+                            _pmSlider,
+                            _pmValue,
                             startButton,
                         }
                     },
-                    new StackLayoutItem(),
-                    new Scrollable()
-                    {
-                        Height = 550,
-                        Content = _outputTable,
-                    }
+                    OutputTableScrollable,
                 }
             };
         }

@@ -11,29 +11,17 @@ namespace ISA_Ryba_Marcin
 	{
 		private readonly TextBox _aInput;
 		private readonly TextBox _bInput;
-		private readonly DropDown _dInput;
 		private readonly TextBox _nInput;
+		private readonly TextBox _pkInput;
+		private readonly TextBox _pmInput;
+		
 		private readonly GridView _outputTable;
-		private readonly Slider _pkSlider;
-		private readonly TextBox _pkValue;
-		private readonly Slider _pmSlider;
-		private readonly TextBox _pmValue;
+		
+		private readonly DropDown _dInput;
 		private readonly DropDown _targetFunctionDropdown;
-
+		
 		private readonly List<DataRow> _data = new();
-
-		private void SyncPkValueToSlider()
-		{
-			double val = _pkSlider.Value;
-			_pkValue.Text = (val / 100_000_000.0).ToString("0.00");
-		}
-
-		private void SyncPmValueToSlider()
-		{
-			double val = _pmSlider.Value;
-			_pmValue.Text = (val / 100_000_000.0).ToString("0.00");
-		}
-
+		
 		//Start Calculations
 		private void StartIna()
 		{
@@ -41,7 +29,10 @@ namespace ISA_Ryba_Marcin
 					FormatChecker.ParseDouble(_aInput.Text, "A", out double a) &&
 					FormatChecker.ParseDouble(_bInput.Text, "B", out double b) &&
 					FormatChecker.ParseLong(_nInput.Text, "N", out long n) &&
-					FormatChecker.ParseDouble(_dInput.SelectedKey, "D", out double d, "en-US")
+					FormatChecker.ParseDouble(_dInput.SelectedKey, "D", out double d, "en-US") &&
+					FormatChecker.ParseDouble(_pkInput.Text, "PK", out double pk) &&
+					FormatChecker.ParseDouble(_pmInput.Text, "PM", out double pm) 
+					
 				)
 				)
 			{
@@ -61,13 +52,10 @@ namespace ISA_Ryba_Marcin
 
 			((ObservableCollection<DataRow>)_outputTable.DataStore).Clear();
 
-			SyncPkValueToSlider();
-			SyncPmValueToSlider();
-
 			int l = (int)Math.Floor( Math.Log((b - a) / d, 2) + 1.0);
 
-			StaticValues.Pk = _pkSlider.Value / 100_000_000.0;
-			StaticValues.Pm = _pmSlider.Value / 100_000_000.0;
+			StaticValues.Pk = pk;
+			StaticValues.Pm = pm;
 			StaticValues.A = a;
 			StaticValues.B = b;
 			StaticValues.D = d;
@@ -109,6 +97,11 @@ namespace ISA_Ryba_Marcin
 			MakeBabies();
 			Mutate();
 			Final();
+		}
+		
+		private void SetMyButtonProperties()
+		{
+			// Give the button a flat appearance.
 		}
 
 		private void Final()
@@ -216,7 +209,7 @@ namespace ISA_Ryba_Marcin
 			foreach (var row in _data)
 			{
 				row.SelectRandom = StaticValues.Rand.NextDouble();
-				int selectedIndex = _data.Count - 1;
+				var selectedIndex = _data.Count - 1;
 				for (var i = 0; i < _data.Count; i++)
 				{
 					if (!(_data[i].QxValue >= row.SelectRandom)) continue;
@@ -233,7 +226,7 @@ namespace ISA_Ryba_Marcin
 			switch (StaticValues.TargetFunction)
 			{
 				case TargetFunction.Max:
-					double min = _data.Min(x => x.OriginalValues.Fx);
+					var min = _data.Min(x => x.OriginalValues.Fx);
 					foreach (var dataRow in _data)
 					{
 						dataRow.GxValue = dataRow.OriginalValues.Fx - min + StaticValues.D;
@@ -242,7 +235,7 @@ namespace ISA_Ryba_Marcin
 					break;
 				
 				case TargetFunction.Min:
-					double max = _data.Max(x => x.OriginalValues.Fx);
+					var max = _data.Max(x => x.OriginalValues.Fx);
 					foreach (var dataRow in _data)
 					{
 						dataRow.GxValue = -(dataRow.OriginalValues.Fx - max) + StaticValues.D;
@@ -255,7 +248,7 @@ namespace ISA_Ryba_Marcin
 
 		private void CalculatePx()
 		{
-			double sum = _data.Sum(x => x.GxValue);
+			var sum = _data.Sum(x => x.GxValue);
 			foreach (var dataRow in _data)
 			{
 				dataRow.PxValue = dataRow.GxValue / sum;
@@ -264,7 +257,7 @@ namespace ISA_Ryba_Marcin
 
 		private void CalculateQx()
 		{
-			double sum = 0.0;
+			var sum = 0.0;
 			foreach (var dataRow in _data)
 			{
 				sum += dataRow.PxValue;
@@ -286,15 +279,18 @@ namespace ISA_Ryba_Marcin
 			{
 				Text = "-4"
 			};
+			
 			_bInput = new TextBox()
 			{
 				Text = "12"
 			};
+			
 			_dInput = new DropDown()
 			{
 				Items = { "1", "0.1", "0.01", "0.001" },
 				SelectedIndex = 3
 			};
+			
 			_targetFunctionDropdown = new DropDown()
 			{
 				Items = { "MAX", "MIN" },
@@ -308,7 +304,8 @@ namespace ISA_Ryba_Marcin
 			var startButton = new Button()
 			{
 				Text = "Start",
-				Command = new Command((sender, eventArgs) => StartIna())
+				Command = new Command((_, _) => StartIna())
+				
 			};
 
 			_outputTable = _outputTable = new GridView()
@@ -337,88 +334,17 @@ namespace ISA_Ryba_Marcin
 				Height = 300,
 				Content = _outputTable
 			};
-
-			_pkSlider = new Slider()
-			{
-				MinValue = 0,
-				MaxValue = 100_000_000,
-				Value = 50_000_000,
-				Width = 110
-			};
-			_pkValue = new TextBox()
-			{
-				Text = (0.5).ToString("0.00"),
-				Width = 50
-			};
-
-			//PK Slider
-			_pkValue.KeyDown += (sender, args) =>
-			{
-				if (args.Key != Keys.Enter) return;
-				try
-				{
-					double val = double.Parse(_pkValue.Text);
-					switch (val)
-					{
-						case > 1.0:
-							_pkValue.Text = 1.0.ToString("0.00");
-							val = 1.0;
-							break;
-						case < 0:
-							_pkValue.Text = 0.0.ToString("0.00");
-							val = 0.0;
-							break;
-					}
-					_pkSlider.Value = (int)Math.Round(val * 100_000_000.0);
-				}
-				catch (Exception exception)
-				{
-					SyncPkValueToSlider();
-				}
-			};
-
-			_pkSlider.ValueChanged += (sender, eventArgs) => SyncPkValueToSlider();
-
-			_pmSlider = new Slider()
-			{
-				MinValue = 0,
-				MaxValue = 100_000_000,
-				Value = 2_000_000,
-				Width = 110
-			};
-			_pmValue = new TextBox()
-			{
-				Text = 0.02.ToString("0.00"),
-				Width = 50
-			};
-
-			//PM Slider
-			_pmValue.KeyDown += (sender, eventArgs) =>
-			{
-				if (eventArgs.Key != Keys.Enter) return;
-				try
-				{
-					double val = double.Parse(_pmValue.Text);
-					switch (val)
-					{
-						case > 1.0:
-							_pmValue.Text = 1.0.ToString("0.00");
-							val = 1.0;
-							break;
-						case < 0:
-							_pmValue.Text = 0.0.ToString("0.00");
-							val = 0.0;
-							break;
-					}
-					_pmSlider.Value = (int)Math.Round(val * 100_000_000.0);
-				}
-				catch (Exception exception)
-				{
-					SyncPmValueToSlider();
-				}
-			};
-			_pmSlider.ValueChanged += (sender, eventArgs) => SyncPmValueToSlider();
 			
+			_pkInput = new TextBox()
+			{
+				Text = "0.5"
+			};
+
+			_pmInput = new TextBox()
+			{
+				Text = "0.005"
+			};
+
 			//Display
             Content = new StackLayout
             {
@@ -473,6 +399,7 @@ namespace ISA_Ryba_Marcin
                             _nInput,
                             new Panel
                             {
+	                            Width = 50,
 	                            Height = 45
                             },
                             
@@ -480,33 +407,34 @@ namespace ISA_Ryba_Marcin
                             {
                                 Text = "PK: "
                             },
-                            _pmSlider,
+                            _pkInput,
                             new Panel
                             {
+	                            Width = 50,
 	                            Height = 45
                             },
-                            
-                            _pkSlider,
-                            _pkValue,
-                            
+
                             new Label
                             {
                                 Text = "PM: "
                             },
-                            _pmSlider,
+                            _pmInput,
                             new Panel
                             {
+	                            Width = 50,
 	                            Height = 45
                             },
-                            
-                            _pmSlider,
-                            _pmValue,
-                            
+
                             new Label()
                             {
-	                            Text = "Target Func"
+	                            Text = "Target Func: "
                             },
                             _targetFunctionDropdown,
+                            new Panel
+                            {
+	                            Width = 50,
+	                            Height = 45
+                            },
                             startButton,
                         }
                     },

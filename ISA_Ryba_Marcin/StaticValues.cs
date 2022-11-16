@@ -5,7 +5,7 @@ namespace ISA_Ryba_Marcin
     public static class StaticValues
     {
         public static double Pk = 0.5;
-        public static double Pm = 0.02;
+        public static double Pm = 0.005;
         
         public static double A;
         public static double B;

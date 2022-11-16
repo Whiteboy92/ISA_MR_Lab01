@@ -13,6 +13,7 @@ namespace ISA_Ryba_Marcin
 		public DataRow ParentsWith = null;
 
 		public readonly Values OriginalValues;
+		public Values SelectionValue;
 		
 		private readonly long _index;
 
@@ -23,8 +24,7 @@ namespace ISA_Ryba_Marcin
 		public double ParentRand;
 		public double FinalXRealValue;
 		public double FinalFxRealValue;
-		
-		public Values SelectionValue;
+
 
 		public bool IsParent => ParentRand < StaticValues.Pk;
 		

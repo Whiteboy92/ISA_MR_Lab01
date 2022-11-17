@@ -1,5 +1,6 @@
 ﻿using System;
 
+
 namespace ISA_Ryba_Marcin
 {
     public static class StaticValues

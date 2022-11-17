@@ -2,6 +2,7 @@
 using System.Globalization;
 using Eto.Forms;
 
+
 namespace ISA_Ryba_Marcin
 {
     public static class FormatChecker

@@ -16,6 +16,8 @@ namespace ISA_Ryba_Marcin
             };
         }
 
+        
+        
         public static long XBinToXInt(string xBin)
         {
             return Convert.ToInt64(xBin, 2);

@@ -98,17 +98,12 @@ namespace ISA_Ryba_Marcin
 			Mutate();
 			Final();
 		}
-		
-		private void SetMyButtonProperties()
-		{
-			// Give the button a flat appearance.
-		}
 
 		private void Final()
 		{
 			foreach (var row in _data)
 			{
-				row.FinalXRealValue = MathHelper.XBinToXReal(row.MutatedChromosomeValue);
+				row.FinalXRealValue = MathHelper.XBinToXReal(row.ChromosomeValueAfterMutating);
 				row.FinalFxRealValue = MathHelper.Fx(row.FinalXRealValue);
 			}
 		}
@@ -117,27 +112,27 @@ namespace ISA_Ryba_Marcin
 		{
 			foreach (var dataRow in _data)
 			{
-				dataRow.MutatedGenesValue = new List<int>();
-				dataRow.MutatedChromosomeValue = "";
+				dataRow.GenesValueAfterMutating = new List<int>();
+				dataRow.ChromosomeValueAfterMutating = "";
 				string chromosome = dataRow.AfterChild.Item2;
 				for (var bit = 0; bit < StaticValues.L; bit++)
 				{
 					if (StaticValues.Rand.NextDouble() < StaticValues.Pm)
 					{
-						dataRow.MutatedGenesValue.Add(bit);
+						dataRow.GenesValueAfterMutating.Add(bit);
 						
 						if (chromosome[bit] == '0')
 						{
-							dataRow.MutatedChromosomeValue += "1";
+							dataRow.ChromosomeValueAfterMutating += "1";
 						}
 						else
 						{
-							dataRow.MutatedChromosomeValue += "0";
+							dataRow.ChromosomeValueAfterMutating += "0";
 						}
 					}
 					else
 					{
-						dataRow.MutatedChromosomeValue += chromosome[bit];
+						dataRow.ChromosomeValueAfterMutating += chromosome[bit];
 					}
 				}
 			}
@@ -265,7 +260,7 @@ namespace ISA_Ryba_Marcin
 			}
 		}
 
-		//-----------------------------------------------------------
+		//------------------------------------------------------------
 		//Main Form
 		public MainForm()
 		{

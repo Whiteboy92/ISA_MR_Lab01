@@ -2,11 +2,12 @@
 using System.Globalization;
 using System.Linq;
 
+
 namespace ISA_Ryba_Marcin
 {
 	public class DataRow
 	{
-		public List<int> MutatedGenesValue = new();
+		public List<int> GenesValueAfterMutating = new();
 		
 		public static readonly DataRow Empty = new(null, -1);
 		
@@ -31,7 +32,7 @@ namespace ISA_Ryba_Marcin
 		public int? PcValue;
 		
 		public string ChildXBin;
-		public string MutatedChromosomeValue = null;
+		public string ChromosomeValueAfterMutating = null;
 
 		public DataRow (Values originalValues, long index)
 		{
@@ -64,10 +65,10 @@ namespace ISA_Ryba_Marcin
 
 		public (string, string) AfterChild => ("Pk x", ChildXBin != null ? ChildXBin.Replace(" | ", "") : SelectionXBin.Item2);
 
-		public (string, string) MutatedGenes => ("Genes", MutatedGenesValue.Count > 0 ? 
-			MutatedGenesValue.Aggregate("", (output, gene) => output + "," + gene).Substring(1) : "-");
+		public (string, string) MutatedGenes => ("Genes", GenesValueAfterMutating.Count > 0 ? 
+			GenesValueAfterMutating.Aggregate("", (output, gene) => output + "," + gene).Substring(1) : "-");
 		
-		public (string, string) MutatedChromosome => ("Bin Mutation", MutatedChromosomeValue ?? "-");
+		public (string, string) MutatedChromosome => ("Bin Mutation", ChromosomeValueAfterMutating ?? "-");
 
 		public (string, string) FinalXReal => ("X Mutation", FinalXRealValue.ToString(CultureInfo.InvariantCulture));
 		

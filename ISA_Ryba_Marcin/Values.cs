@@ -1,5 +1,6 @@
 ﻿namespace ISA_Ryba_Marcin
 {
+    
     public class Values
     {
         public double XReal1;
